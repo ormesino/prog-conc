@@ -1,4 +1,4 @@
-### Atividades
+### Atividade 5
 
 #### Enunciado
 
@@ -12,19 +12,6 @@ Escreva um programa com M _threads_, para elevar ao quadrado cada elemento de um
    valores finais do vetor estão corretos.
 4. Execute o programa várias vezes e verifique se ele está funcionando corretamente.
 
-#### Respostas
+#### Resposta
 
-Atividade 1: 
-- 
-
-Atividade 2:
-- 
-
-Atividade 3: 
-- 
-
-Atividade 4: 
-- 
-
-Atividade 5:
 - Implementação do programa está no arquivo `ativ5.c`.
