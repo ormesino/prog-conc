@@ -6,22 +6,31 @@
 
 // Constantes
 #define RANGE 20
-#define NELEMENTS 200
+#define NELEMENTS 500
 #define MTHREADS 19
 
 // Vetor que será utilizado pelas threads e vetor de checagem final
-int arr[NELEMENTS], testArr[NELEMENTS];
+int testArr[NELEMENTS];
 
 // Estrutura para auxiliar na multiplicação
 typedef struct
 {
   int indexArr, qntyElements;
+  int *arr;
 } tArgs;
 
 // Função de inicialização do vetor
-void initArr(void)
+int *initArr(void)
 {
   int temp;
+
+  // Criação do vetor principal
+  int *arr = (int *)malloc(NELEMENTS * sizeof(int));
+  if (arr == NULL)
+  {
+    printf("ERRO: malloc()\n");
+    exit(-4);
+  }
 
   // Utilização de inteiros randômicos na inicialização
   srand(time(NULL));
@@ -34,6 +43,8 @@ void initArr(void)
     printf("%d ", temp);
   }
   printf("\n");
+
+  return arr;
 }
 
 // Função de multiplicação informada para cada thread
@@ -43,14 +54,14 @@ void *multElement(void *arg)
 
   // Multiplica desde o índice dado até a qntd de elementos da thread
   for (int i = args.indexArr; i < args.indexArr + args.qntyElements; i++)
-    arr[i] *= arr[i];
+    args.arr[i] *= args.arr[i];
 
   free(arg);
   pthread_exit(NULL);
 }
 
 // Função para checar o vetor resultado após as multiplicações
-int checkArr(void)
+int checkArr(int *arr)
 {
   for (int i = 0; i < NELEMENTS; i++)
   {
@@ -69,7 +80,7 @@ int main(void)
   tArgs *args;
 
   // Inicializa os vetores
-  initArr();
+  int *arr = initArr();
 
   // Checagem entre número de elementos e número de threads
   if (MTHREADS > NELEMENTS)
@@ -88,6 +99,7 @@ int main(void)
     args = malloc(sizeof(tArgs));
 
     args->indexArr = index;
+    args->arr = arr;
     // Se estiver dentro do limite, adiciona mais um elemento
     if (i < limit)
       args->qntyElements = elemByThread + 1;
@@ -116,7 +128,7 @@ int main(void)
   }
 
   // Teste se os resultados são condizentes
-  checkArr();
+  checkArr(arr);
 
   // Impressão do vetor resultado
   printf("\nVetor resultado:\n");
