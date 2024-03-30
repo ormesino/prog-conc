@@ -78,7 +78,7 @@ int main(int argc, char *argv[])
   if (arr == NULL)
   {
     fprintf(stderr, "ERRO: malloc() do vetor de elementos\n");
-    return 3;
+    return 4;
   }
   for (long int i = 0; i < qtyElem; i++)
     scanf("%f", &arr[i]);
@@ -99,7 +99,7 @@ int main(int argc, char *argv[])
     if (args == NULL)
     {
       fprintf(stderr, "ERRO: malloc() da entrada das threads\n");
-      return 4;
+      return 5;
     }
 
     args->start = index;
@@ -112,8 +112,8 @@ int main(int argc, char *argv[])
     // Criação da thread com o objeto como argumento
     if (pthread_create(&tid[i], NULL, sumElem, (void *)args))
     {
-      printf("ERRO: pthread_create()\n");
-      return 5;
+      fprintf(stderr, "ERRO: pthread_create()\n");
+      return 6;
     }
 
     // Incremento do índice com base na quantidade de elementos dada para a thread
@@ -126,7 +126,7 @@ int main(int argc, char *argv[])
     if (pthread_join(*(tid + i), (void **)&response))
     {
       fprintf(stderr, "ERRO: pthread_join()\n");
-      return 6;
+      return 7;
     }
 
     // Soma dos retornos das threads
