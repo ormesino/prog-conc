@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <time.h>
 
-// #define TEST
+#define TEST
 
 int main(int argc, char *argv[])
 {
@@ -42,8 +42,10 @@ int main(int argc, char *argv[])
   srand(time(NULL));
   for (int i = 0; i < matrixSize; i++)
   {
-    *(firstMatrix + i) = (rand() % 1000) * 0.3;
-    *(secondMatrix + i) = (rand() % 1000) * 0.3;
+    //*(firstMatrix + i) = (rand() % 1000) * 0.3;
+    //*(secondMatrix + i) = (rand() % 1000) * 0.3;
+    *(firstMatrix + i) = i + 1;
+    *(secondMatrix + i) = i + matrixSize + 1;
   }
 
 #ifdef TEST
@@ -54,8 +56,7 @@ int main(int argc, char *argv[])
       fprintf(stdout, "%.6f ", firstMatrix[i * columns + j]);
     fprintf(stdout, "\n");
   }
-  fprintf(stdout, "\n");
-  fprintf(stdout, "Segunda matriz:\n");
+  fprintf(stdout, "\nSegunda matriz:\n");
   for (int i = 0; i < rows; i++)
   {
     for (int j = 0; j < columns; j++)
