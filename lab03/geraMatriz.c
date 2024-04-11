@@ -8,7 +8,7 @@ int main(int argc, char *argv[])
 {
   int rows, columns;
   long long int matrixSize;
-  float *firstMatrix, *secondMatrix;
+  float *ptMatrix;
   FILE *fptr;
   size_t ret;
 
@@ -25,14 +25,8 @@ int main(int argc, char *argv[])
   matrixSize = rows * columns;
 
   // Alocação de espaço para as matrizes
-  firstMatrix = (float *)malloc(sizeof(float) * matrixSize);
-  if (!firstMatrix)
-  {
-    fprintf(stderr, "ERRO: malloc()");
-    return -2;
-  }
-  secondMatrix = (float *)malloc(sizeof(float) * matrixSize);
-  if (!secondMatrix)
+  ptMatrix = (float *)malloc(sizeof(float) * matrixSize);
+  if (!ptMatrix)
   {
     fprintf(stderr, "ERRO: malloc()");
     return -2;
@@ -42,25 +36,16 @@ int main(int argc, char *argv[])
   srand(time(NULL));
   for (int i = 0; i < matrixSize; i++)
   {
-    //*(firstMatrix + i) = (rand() % 1000) * 0.3;
-    //*(secondMatrix + i) = (rand() % 1000) * 0.3;
-    *(firstMatrix + i) = i + 1;
-    *(secondMatrix + i) = i + matrixSize + 1;
+    //*(ptMatrix + i) = (rand() % 1000) * 0.3;
+    *(ptMatrix + i) = i + 1;
   }
 
 #ifdef TEST
-  fprintf(stdout, "Primeira matriz:\n");
+  fprintf(stdout, "Matriz:\n");
   for (int i = 0; i < rows; i++)
   {
     for (int j = 0; j < columns; j++)
-      fprintf(stdout, "%.6f ", firstMatrix[i * columns + j]);
-    fprintf(stdout, "\n");
-  }
-  fprintf(stdout, "\nSegunda matriz:\n");
-  for (int i = 0; i < rows; i++)
-  {
-    for (int j = 0; j < columns; j++)
-      fprintf(stdout, "%.6f ", secondMatrix[i * columns + j]);
+      fprintf(stdout, "%.6f\t", ptMatrix[i * columns + j]);
     fprintf(stdout, "\n");
   }
 #endif
@@ -74,8 +59,7 @@ int main(int argc, char *argv[])
   }
   ret = fwrite(&rows, sizeof(int), 1, fptr);
   ret = fwrite(&columns, sizeof(int), 1, fptr);
-  ret = fwrite(firstMatrix, sizeof(float), matrixSize, fptr);
-  ret = fwrite(secondMatrix, sizeof(float), matrixSize, fptr);
+  ret = fwrite(ptMatrix, sizeof(float), matrixSize, fptr);
   if (ret < matrixSize)
   {
     fprintf(stderr, "ERRO: Escrita no arquivo\n");
@@ -84,8 +68,7 @@ int main(int argc, char *argv[])
 
   // Liberação de espaço alocado na memória
   fclose(fptr);
-  free(firstMatrix);
-  free(secondMatrix);
+  free(ptMatrix);
 
   return 0;
 }
