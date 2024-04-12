@@ -1,15 +1,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-// #define TEST
+#define TEST
 
 float *firstMatrix, *secondMatrix, *finalMatrix;
 
 int main(int argc, char *argv[])
 {
-  float *firstMatrix, *secondMatrix, *finalMatrix;
   int firstMatrixRows, firstMatrixCol, secondMatrixRows, secondMatrixCol;
-  long long int firstMatrixSize, secondMatrixSize;
+  long long int firstMatrixSize, secondMatrixSize, finalMatrixSize;
   FILE *fptr;
   size_t ret;
 
@@ -44,7 +43,7 @@ int main(int argc, char *argv[])
   firstMatrixSize = firstMatrixRows * firstMatrixCol;
 
   // aloca memoria para a primeira matriz
-  firstMatrix = (float *)malloc(sizeof(float) * matrixSize);
+  firstMatrix = (float *)malloc(sizeof(float) * firstMatrixSize);
   if (!firstMatrix)
   {
     fprintf(stderr, "ERRO: malloc() da primeira matriz\n");
@@ -52,12 +51,14 @@ int main(int argc, char *argv[])
   }
 
   // carrega a matriz de elementos do tipo float do arquivo
-  ret = fread(firstMatrix, sizeof(float), matrixSize, fptr);
-  if (ret < matrixSize)
+  ret = fread(firstMatrix, sizeof(float), firstMatrixSize, fptr);
+  if (ret < firstMatrixSize)
   {
     fprintf(stderr, "ERRO: Leitura dos elementos da matriz\n");
     return -5;
   }
+
+  fclose(fptr);
 
   // abertura do arquivo da segunda matriz
   fptr = fopen(argv[2], "rb");
@@ -80,28 +81,30 @@ int main(int argc, char *argv[])
     fprintf(stderr, "ERRO: Leitura das dimensoes da segunda matriz \n");
     return -3;
   }
-  secondMatrixSize = secondMatrixRows * secondMatrixCol;
 
-  secondMatrix = (float *)malloc(sizeof(float) * matrixSize);
+  secondMatrixSize = secondMatrixRows * secondMatrixCol;
+  secondMatrix = (float *)malloc(sizeof(float) * secondMatrixSize);
   if (!secondMatrix)
   {
     fprintf(stderr, "ERRO: malloc() da segunda matriz\n");
     return -4;
   }
 
-  ret = fread(secondMatrix, sizeof(float), matrixSize, fptr);
-  if (ret < matrixSize)
+  ret = fread(secondMatrix, sizeof(float), secondMatrixSize, fptr);
+  if (ret < secondMatrixSize)
   {
     fprintf(stderr, "ERRO: Leitura dos elementos da matriz\n");
     return -5;
   }
 
-  if (firstMatrixCol != secondMatrixRows) {
+  if (firstMatrixCol != secondMatrixRows)
+  {
     fprintf(stderr, "ERRO: Numero de colunas da primeira matriz diferente do numero de linhas da segunda matriz.\nInforme matrizes validas");
     return -5;
   }
 
-  finalMatrix = (float *)malloc(sizeof(float) * firstMatrixCol * secondMatrixRows);
+  finalMatrixSize = firstMatrixRows * secondMatrixCol;
+  finalMatrix = (float *)malloc(sizeof(float) * finalMatrixSize);
   if (!finalMatrix)
   {
     fprintf(stderr, "ERRO: malloc() da matriz final\n");
@@ -109,20 +112,16 @@ int main(int argc, char *argv[])
   }
 
   // Processamento Sequencial
-  for (int i = 0; i < rows; i++)
+  for (int i = 0; i < firstMatrixRows; i++)
   {
-    for (int j = 0; j < columns; j++)
+    for (int j = 0; j < secondMatrixCol; j++)
     {
-      finalMatrix[i] = 0;
-      for (int k = 0; k < columns; k++)
+      finalMatrix[i * secondMatrixCol + j] = 0;
+      for (int k = 0; k < secondMatrixRows; k++)
       {
-        finalMatrix[i] += firstMatrix[i * rows + k] * secondMatrix[k * rows + j];
+        finalMatrix[i * secondMatrixCol + j] += firstMatrix[i * secondMatrixRows + k] * secondMatrix[k * secondMatrixCol + j];
       }
-
-      printf("%.6f\t", finalMatrix[i]);
     }
-
-    printf("\n");
   }
 
 #ifdef TEST
@@ -133,28 +132,33 @@ int main(int argc, char *argv[])
       fprintf(stdout, "%.6f ", firstMatrix[i * firstMatrixCol + j]);
     fprintf(stdout, "\n");
   }
-  fprintf(stdout, "\n");
-  fprintf(stdout, "Segunda matriz:\n");
+  fprintf(stdout, "\nSegunda matriz:\n");
   for (int i = 0; i < secondMatrixRows; i++)
   {
     for (int j = 0; j < secondMatrixCol; j++)
       fprintf(stdout, "%.6f ", secondMatrix[i * secondMatrixCol + j]);
     fprintf(stdout, "\n");
   }
+  fprintf(stdout, "\nMatriz final:\n");
+  for (int i = 0; i < firstMatrixRows; i++)
+  {
+    for (int j = 0; j < secondMatrixCol; j++)
+      fprintf(stdout, "%.6f ", finalMatrix[i * secondMatrixCol + j]);
+    fprintf(stdout, "\n");
+  }
 #endif
 
-  fptr = fopen(argv[2], "wb");
+  fptr = fopen(argv[3], "wb");
   if (!fptr)
   {
     fprintf(stderr, "ERRO: Abertura do arquivo\n");
     return -3;
   }
-  ret = fwrite(&rows, sizeof(int), 1, fptr);
-  ret = fwrite(&columns, sizeof(int), 1, fptr);
-  ret = fwrite(firstMatrix, sizeof(float), matrixSize, fptr);
-  ret = fwrite(secondMatrix, sizeof(float), matrixSize, fptr);
+  ret = fwrite(&firstMatrixRows, sizeof(int), 1, fptr);
+  ret = fwrite(&secondMatrixCol, sizeof(int), 1, fptr);
+  ret = fwrite(finalMatrix, sizeof(float), finalMatrixSize, fptr);
 
-  if (ret < matrixSize)
+  if (ret < finalMatrixSize)
   {
     fprintf(stderr, "ERRO: Escrita no arquivo\n");
     return -4;

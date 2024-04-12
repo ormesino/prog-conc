@@ -36,8 +36,7 @@ int main(int argc, char *argv[])
   srand(time(NULL));
   for (int i = 0; i < matrixSize; i++)
   {
-    //*(ptMatrix + i) = (rand() % 1000) * 0.3;
-    *(ptMatrix + i) = i + 1;
+    *(ptMatrix + i) = (rand() % 1000) * 0.3;
   }
 
 #ifdef TEST
