@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-
-#define TEST
+#include <time.h>
 
 float *mat1, *mat2, *result; // Ponteiros para as matrizes
 
@@ -59,12 +58,15 @@ int main(int argc, char *argv[])
   long long int resultSize; // Tamanho das matrizes
   FILE *fptr;               // Ponteiro para o arquivo
   size_t ret;               // Retorno da leitura
+  double delta;             // Variáveis para medir o tempo
+  clock_t inicio, fim;
 
   // Leitura dos comandos do terminal
-  if (argc < 5)
+  inicio = clock();
+  if (argc < 4)
   {
     fprintf(stderr, "Insira o comando no formato: \
-    %s <arquivo_entrada_1> <arquivo_entrada_2> <arquivo_saida> <qntd_threads>",
+    %s <arquivo_entrada_1> <arquivo_entrada_2> <arquivo_saida>",
             argv[0]);
     return -1;
   }
@@ -89,8 +91,12 @@ int main(int argc, char *argv[])
     fprintf(stderr, "ERRO: malloc() da matriz final\n");
     return -4;
   }
+  fim = clock();
+  delta = (double)(fim - inicio) / CLOCKS_PER_SEC;
+  printf("Tempo inicializacao: %lf\n", delta);
 
   // Processamento Sequencial
+  inicio = clock();
   for (int i = 0; i < R1; i++)
   {
     for (int j = 0; j < C2; j++)
@@ -102,31 +108,12 @@ int main(int argc, char *argv[])
       }
     }
   }
+  fim = clock();
+  delta = (double)(fim - inicio) / CLOCKS_PER_SEC;
+  printf("Tempo multiplicacao (%dx%d com %dx%d): %lf\n", R1, C1, R2, C2, delta);
 
-#ifdef TEST
-  fprintf(stdout, "Primeira matriz:\n");
-  for (int i = 0; i < R1; i++)
-  {
-    for (int j = 0; j < C1; j++)
-      fprintf(stdout, "%.6f ", mat1[i * C1 + j]);
-    fprintf(stdout, "\n");
-  }
-  fprintf(stdout, "\nSegunda matriz:\n");
-  for (int i = 0; i < R2; i++)
-  {
-    for (int j = 0; j < C2; j++)
-      fprintf(stdout, "%.6f ", mat2[i * C2 + j]);
-    fprintf(stdout, "\n");
-  }
-  fprintf(stdout, "\nMatriz final:\n");
-  for (int i = 0; i < R1; i++)
-  {
-    for (int j = 0; j < C2; j++)
-      fprintf(stdout, "%.6f ", result[i * C2 + j]);
-    fprintf(stdout, "\n");
-  }
-#endif
-
+  // Escrita da matriz resultante no arquivo de saída
+  inicio = clock();
   fptr = fopen(argv[3], "wb");
   if (!fptr)
   {
@@ -143,10 +130,14 @@ int main(int argc, char *argv[])
     return -7;
   }
 
+  // Liberação de memória
   fclose(fptr);
   free(mat1);
   free(mat2);
   free(result);
+  fim = clock();
+  delta = (double)(fim - inicio) / CLOCKS_PER_SEC;
+  printf("Tempo finalizacao: %lf\n", delta);
 
   return 0;
 }
