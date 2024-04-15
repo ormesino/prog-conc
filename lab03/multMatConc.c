@@ -1,3 +1,5 @@
+#define _POSIX_C_SOURCE 199309L // Para a função clock_gettime
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
@@ -80,17 +82,17 @@ void initMat(float **mat, int *rows, int *columns, char *str)
 
 int main(int argc, char *argv[])
 {
-  int R1, C1, R2, C2;       // Dimensões das matrizes
-  long long int resultSize; // Tamanho das matrizes
-  FILE *fptr;               // Ponteiro para o arquivo
-  tArgs *args;              // IDs locais das threads e dimensao
-  pthread_t *tid;           // IDs das threads
-  size_t ret;               // Retorno da leitura
-  clock_t inicio, fim;      // Variáveis para medir o tempo
+  int R1, C1, R2, C2;         // Dimensões das matrizes
+  long long int resultSize;   // Tamanho das matrizes
+  FILE *fptr;                 // Ponteiro para o arquivo
+  tArgs *args;                // IDs locais das threads e dimensao
+  pthread_t *tid;             // IDs das threads
+  size_t ret;                 // Retorno da leitura
+  struct timespec start, end; // Medição de tempo
   double delta;
 
   // Leitura dos comandos do terminal
-  inicio = clock();
+  clock_gettime(CLOCK_MONOTONIC, &start);
   if (argc < 5)
   {
     fprintf(stderr, "Insira o comando no formato: \
@@ -120,12 +122,12 @@ int main(int argc, char *argv[])
     fprintf(stderr, "ERRO: malloc() da matriz final\n");
     return -4;
   }
-  fim = clock();
-  delta = (double)(fim - inicio) / CLOCKS_PER_SEC;
-  printf("Tempo inicializacao: %lf\n", delta);
+  clock_gettime(CLOCK_MONOTONIC, &end);
+  delta = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1.0e9;
+  fprintf(stdout, "Tempo inicializacao: %f\n", delta);
 
   // Alocação de memória para as estruturas auxiliares das threads
-  inicio = clock();
+  clock_gettime(CLOCK_MONOTONIC, &start);
   tid = (pthread_t *)malloc(sizeof(pthread_t) * nThreads);
   if (!tid)
   {
@@ -158,12 +160,12 @@ int main(int argc, char *argv[])
   {
     pthread_join(*(tid + i), NULL);
   }
-  fim = clock();
-  delta = (double)(fim - inicio) / CLOCKS_PER_SEC;
-  printf("Tempo multiplicacao (%dx%d com %dx%d) (%d threads): %lf\n", R1, C1, R2, C2, nThreads, delta);
+  clock_gettime(CLOCK_MONOTONIC, &end);
+  delta = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1.0e9;
+  fprintf(stdout, "Tempo multiplicacao (%dx%d com %dx%d) (%d threads): %lf\n", R1, C1, R2, C2, nThreads, delta);
 
   // Escrita da matriz resultante no arquivo de saída
-  inicio = clock();
+  clock_gettime(CLOCK_MONOTONIC, &start);
   fptr = fopen(argv[3], "wb");
   if (!fptr)
   {
@@ -186,8 +188,8 @@ int main(int argc, char *argv[])
   free(result);
   free(args);
   free(tid);
-  fim = clock();
-  delta = (double)(fim - inicio) / CLOCKS_PER_SEC;
+  clock_gettime(CLOCK_MONOTONIC, &end);
+  delta = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1.0e9;
   printf("Tempo finalizacao: %lf\n", delta);
 
   return 0;

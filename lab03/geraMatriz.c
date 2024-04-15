@@ -2,8 +2,6 @@
 #include <stdlib.h>
 #include <time.h>
 
-#define TEST
-
 int main(int argc, char *argv[])
 {
   int rows, columns;
@@ -38,16 +36,6 @@ int main(int argc, char *argv[])
   {
     *(ptMatrix + i) = (rand() % 1000) * 0.3;
   }
-
-#ifdef TEST
-  fprintf(stdout, "Matriz:\n");
-  for (int i = 0; i < rows; i++)
-  {
-    for (int j = 0; j < columns; j++)
-      fprintf(stdout, "%.6f\t", ptMatrix[i * columns + j]);
-    fprintf(stdout, "\n");
-  }
-#endif
 
   // Escrita das matrizes em um arquivo binário de saída
   fptr = fopen(argv[3], "wb");

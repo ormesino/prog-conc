@@ -1,3 +1,5 @@
+#define _POSIX_C_SOURCE 199309L // Para a função clock_gettime
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -54,15 +56,15 @@ void initMat(float **mat, int *rows, int *columns, char *str)
 
 int main(int argc, char *argv[])
 {
-  int R1, C1, R2, C2;       // Dimensões das matrizes
-  long long int resultSize; // Tamanho das matrizes
-  FILE *fptr;               // Ponteiro para o arquivo
-  size_t ret;               // Retorno da leitura
-  double delta;             // Variáveis para medir o tempo
-  clock_t inicio, fim;
+  int R1, C1, R2, C2;         // Dimensões das matrizes
+  long long int resultSize;   // Tamanho das matrizes
+  FILE *fptr;                 // Ponteiro para o arquivo
+  size_t ret;                 // Retorno da leitura
+  struct timespec start, end; // Medição de tempo
+  double delta;
 
   // Leitura dos comandos do terminal
-  inicio = clock();
+  clock_gettime(CLOCK_MONOTONIC, &start);
   if (argc < 4)
   {
     fprintf(stderr, "Insira o comando no formato: \
@@ -91,12 +93,12 @@ int main(int argc, char *argv[])
     fprintf(stderr, "ERRO: malloc() da matriz final\n");
     return -4;
   }
-  fim = clock();
-  delta = (double)(fim - inicio) / CLOCKS_PER_SEC;
+  clock_gettime(CLOCK_MONOTONIC, &end);
+  delta = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1.0e9;
   printf("Tempo inicializacao: %lf\n", delta);
 
   // Processamento Sequencial
-  inicio = clock();
+  clock_gettime(CLOCK_MONOTONIC, &start);
   for (int i = 0; i < R1; i++)
   {
     for (int j = 0; j < C2; j++)
@@ -108,12 +110,12 @@ int main(int argc, char *argv[])
       }
     }
   }
-  fim = clock();
-  delta = (double)(fim - inicio) / CLOCKS_PER_SEC;
+  clock_gettime(CLOCK_MONOTONIC, &end);
+  delta = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1.0e9;
   printf("Tempo multiplicacao (%dx%d com %dx%d): %lf\n", R1, C1, R2, C2, delta);
 
   // Escrita da matriz resultante no arquivo de saída
-  inicio = clock();
+  clock_gettime(CLOCK_MONOTONIC, &start);
   fptr = fopen(argv[3], "wb");
   if (!fptr)
   {
@@ -135,8 +137,8 @@ int main(int argc, char *argv[])
   free(mat1);
   free(mat2);
   free(result);
-  fim = clock();
-  delta = (double)(fim - inicio) / CLOCKS_PER_SEC;
+  clock_gettime(CLOCK_MONOTONIC, &end);
+  delta = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1.0e9;
   printf("Tempo finalizacao: %lf\n", delta);
 
   return 0;
