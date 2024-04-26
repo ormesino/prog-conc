@@ -1,15 +1,18 @@
-#define _POSIX_C_SOURCE 199309L
+#define _POSIX_C_SOURCE 199309L // para o clock_gettime
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 #include <pthread.h>
+#include <time.h>
 
+// Variáveis globais
 long long int n;
 int globalIndex = 0;
 pthread_mutex_t mutex;
 int *arr;
 
+// Função que verifica se um número é primo
 int findPrime(long long int n)
 {
   if (n <= 1)
@@ -24,6 +27,7 @@ int findPrime(long long int n)
   return 1;
 }
 
+// Função que as threads executarão
 void *countPrimes(void *arg)
 {
   int *partialResult;
@@ -33,9 +37,11 @@ void *countPrimes(void *arg)
     pthread_exit(NULL);
   }
 
+  // Inicializa o resultado parcial
   *partialResult = 0;
   while (1)
   {
+    // Seção crítica
     pthread_mutex_lock(&mutex);
     if (globalIndex >= n)
     {
@@ -60,6 +66,7 @@ int main(int argc, char *argv[])
   struct timespec start, end;
   double delta;
 
+  // Validação dos parâmetros de entrada
   if (argc != 3)
   {
     fprintf(stderr, "Use: %s <n> <nThreads>\n", argv[0]);
@@ -69,6 +76,7 @@ int main(int argc, char *argv[])
   n = atoll(argv[1]);
   nThreads = atoi(argv[2]);
 
+  // Alocação de memória para o vetor de elementos e sua inicialização
   arr = (int *)malloc(n * sizeof(int));
   if (arr == NULL)
   {
@@ -80,6 +88,7 @@ int main(int argc, char *argv[])
     arr[i] = i + 1;
   }
 
+  // Alocação de memória para o vetor de threads
   tid = (pthread_t *)malloc(nThreads * sizeof(pthread_t));
   if (tid == NULL)
   {
@@ -89,7 +98,8 @@ int main(int argc, char *argv[])
 
   clock_gettime(CLOCK_MONOTONIC, &start);
   pthread_mutex_init(&mutex, NULL);
-  
+
+  // Inicialização das threads
   for (int i = 0; i < nThreads; i++)
   {
     if (pthread_create(&tid[i], NULL, countPrimes, NULL))
@@ -99,6 +109,7 @@ int main(int argc, char *argv[])
     }
   }
 
+  // Aguarda o término das threads
   result = 0;
   for (int i = 0; i < nThreads; i++)
   {
@@ -117,6 +128,7 @@ int main(int argc, char *argv[])
 
   printf("Total de primos: %d\n", result);
 
+  // Libera memória e encerra
   pthread_mutex_destroy(&mutex);
   free(tid);
   free(arr);
