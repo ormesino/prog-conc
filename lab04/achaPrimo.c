@@ -1,3 +1,5 @@
+#define _POSIX_C_SOURCE 199309L
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -55,6 +57,8 @@ int main(int argc, char *argv[])
 {
   int nThreads, result;
   pthread_t *tid;
+  struct timespec start, end;
+  double delta;
 
   if (argc != 3)
   {
@@ -83,8 +87,9 @@ int main(int argc, char *argv[])
     exit(-1);
   }
 
+  clock_gettime(CLOCK_MONOTONIC, &start);
   pthread_mutex_init(&mutex, NULL);
-
+  
   for (int i = 0; i < nThreads; i++)
   {
     if (pthread_create(&tid[i], NULL, countPrimes, NULL))
@@ -106,6 +111,9 @@ int main(int argc, char *argv[])
     result += *partialResult;
     free(partialResult);
   }
+  clock_gettime(CLOCK_MONOTONIC, &end);
+  delta = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1.0e9;
+  fprintf(stdout, "Tempo de processamento (%lld elementos) (%d threads): %lf\n", n, nThreads, delta);
 
   printf("Total de primos: %d\n", result);
 
