@@ -39,6 +39,7 @@ int main(int argc, char *argv[])
     fprintf(stderr, "ERRO: Abertura do arquivo\n");
     return -3;
   }
+  ret = fwrite(&qty, sizeof(int), 1, fptr);
   ret = fwrite(ptArray, sizeof(int), qty, fptr);
   if (ret < qty)
   {
