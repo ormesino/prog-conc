@@ -8,7 +8,7 @@
 
 sem_t fullSlot, emptySlot;
 sem_t innerMutex, outerMutex;
-int n;
+int arrSize, globalN = 0;
 int *arr;
 int Buffer[M];
 
@@ -30,7 +30,7 @@ void initArr(char *str)
     exit(-2);
   }
 
-  ret = fread(&n, sizeof(int), 1, fptr);
+  ret = fread(&arrSize, sizeof(int), 1, fptr);
   if (!ret)
   {
     fprintf(stderr, "ERRO: Leitura da dimensao do vetor\n");
@@ -38,7 +38,7 @@ void initArr(char *str)
   }
 
   // Alocação de memória para o vetor de inteiros
-  arr = (int *)malloc(sizeof(int) * n);
+  arr = (int *)malloc(sizeof(int) * arrSize);
   if (!arr)
   {
     fprintf(stderr, "ERRO: malloc() do vetor\n");
@@ -46,8 +46,8 @@ void initArr(char *str)
   }
 
   // Carrega os elementos do arquivo no vetor
-  ret = fread(arr, sizeof(int), n, fptr);
-  if (ret < n)
+  ret = fread(arr, sizeof(int), arrSize, fptr);
+  if (ret < arrSize)
   {
     fprintf(stderr, "ERRO: Leitura dos elementos do vetor\n");
     exit(-5);
@@ -100,7 +100,7 @@ int Remove()
 void *producer(void *arg)
 {
   free(arg);
-  for (int i = 0; i < n; i++)
+  for (int i = 0; i < arrSize; i++)
     Put(*(arr + i));
 
   pthread_exit(NULL);
@@ -108,24 +108,38 @@ void *producer(void *arg)
 
 void *consumer(void *arg)
 {
-  static int localN;
-  int elem, result = 0;
-  free(arg);
-  while (localN < n)
+  int *partialResult = (int *)malloc(sizeof(int));
+  if (!partialResult)
   {
-    elem = Remove();
-    sem_wait(&outerMutex);
-    localN += 1;
-    sem_post(&outerMutex);
-    result += findPrime(elem);
+    fprintf(stderr, "ERRO: malloc() do resultado parcial\n");
+    pthread_exit(NULL);
   }
-  pthread_exit((void *)result);
+  *partialResult = 0;
+  int id = *(int *)(arg), num;
+  free(arg);
+
+  while (1)
+  {
+    sem_wait(&outerMutex);
+    if (globalN == arrSize)
+    {
+      sem_post(&outerMutex);
+      break;
+    }
+    num = Remove();
+    globalN++;
+    sem_post(&outerMutex);
+    
+    *partialResult += findPrime(num);
+  }
+
+  pthread_exit((void *)partialResult);
 }
 
 int main(int argc, char *argv[])
 {
-  int nThreads, result = 0;
-  pthread_t *tid;
+  int nThreads, *id, result = 0;
+  pthread_t *tidCon, tidProd;
   worker *winner;
 
   // Inicialização dos semáforos
@@ -142,66 +156,72 @@ int main(int argc, char *argv[])
   }
 
   initArr(argv[1]);
-  nThreads = atoi(argv[2]) + 1;
+  nThreads = atoi(argv[2]);
 
-  tid = (pthread_t *)malloc(sizeof(pthread_t) * nThreads);
-  if (!tid)
+  tidCon = (pthread_t *)malloc(sizeof(pthread_t) * nThreads);
+  if (!tidCon)
   {
-    fprintf(stderr, "ERRO: malloc() do tid\n");
+    fprintf(stderr, "ERRO: malloc() do tidCon\n");
     return -4;
   }
 
-  if (pthread_create(&tid[0], NULL, producer, NULL))
+  // Criação da thread produtora
+  if (pthread_create(&tidProd, NULL, producer, NULL))
   {
     fprintf(stderr, "ERRO: Criacao da thread produtora\n");
     exit(1);
   }
 
-  for (int i = 1; i < nThreads; i++)
+  for (int i = 0; i < nThreads; i++)
   {
-    if (pthread_create(&tid[1 + i], NULL, consumer, NULL))
+    id = (int *)malloc(sizeof(int));
+    *id = i + 1;
+    if (pthread_create(&tidCon[i], NULL, consumer, (void *)id))
     {
       fprintf(stderr, "ERRO: Criacao das threads consumidoras\n");
       exit(1);
     }
   }
 
-  winner = (worker *)malloc(sizeof(worker) * nThreads);
+  winner = (worker *)malloc(sizeof(worker));
   if (!winner)
   {
     fprintf(stderr, "ERRO: malloc() do vencedor\n");
-    return -4;
+    return -5;
   }
+  winner->id = 0;
+  winner->score = 0;
 
   // Aguardando a execução da thread produtora
-  if (pthread_join(tid[0], NULL))
+  if (pthread_join(tidProd, NULL))
   {
     fprintf(stderr, "ERRO: join() da thread produtora\n");
     exit(-1);
   }
 
-  printf("thread produtora parou");
-
   // Aguardando a execução das threads consumidores
-  for (int i = 1; i < nThreads; i++)
+  for (int i = 0; i < nThreads; i++)
   {
     int *partialResult;
-    if (pthread_join(tid[i], (void **)&partialResult))
+    if (pthread_join(tidCon[i], (void **)&partialResult))
     {
       fprintf(stderr, "ERRO: join() das threads consumidoras\n");
       exit(-1);
     }
-    printf("thread %d parou", i);
     result += *partialResult;
     if (winner->score < *partialResult)
     {
-      winner->id = i;
+      winner->id = i + 1;
       winner->score = *partialResult;
     }
     free(partialResult);
   }
 
-  free(tid);
+  printf("Soma dos numeros primos encontrados: %d\n", result);
+  printf("Thread %d eh a vencedora tendo achado %d primos\n", winner->id, winner->score);
+
+  free(tidCon);
+  free(id);
   free(arr);
   free(winner);
 
