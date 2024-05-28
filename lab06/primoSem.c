@@ -10,7 +10,7 @@ sem_t fullSlot, emptySlot;
 sem_t innerMutex, outerMutex;
 int arrSize, globalN = 0;
 int *arr;
-int Buffer[M];
+int *buffer;
 
 typedef struct
 {
@@ -76,7 +76,7 @@ void Put(int elem)
   static int in = 0;
   sem_wait(&emptySlot);  // Aguarda slot vazio para inserir
   sem_wait(&innerMutex); // Exclusão mútua entre produtores
-  Buffer[in] = elem;
+  buffer[in] = elem;
   in = (in + 1) % M;
   sem_post(&innerMutex);
   sem_post(&fullSlot); // Sinaliza um slot cheio para ser consumido
@@ -89,8 +89,8 @@ int Remove()
   static int out = 0;
   sem_wait(&fullSlot);   // Aguarda slot cheio para retirar
   sem_wait(&innerMutex); // Exclusão mútua entre consumidores
-  item = Buffer[out];
-  Buffer[out] = 0;
+  item = buffer[out];
+  buffer[out] = 0;
   out = (out + 1) % M;
   sem_post(&innerMutex);
   sem_post(&emptySlot); // Sinaliza um slot vazio para ser consumido
@@ -108,6 +108,7 @@ void *producer(void *arg)
 
 void *consumer(void *arg)
 {
+  int num;
   int *partialResult = (int *)malloc(sizeof(int));
   if (!partialResult)
   {
@@ -115,7 +116,6 @@ void *consumer(void *arg)
     pthread_exit(NULL);
   }
   *partialResult = 0;
-  int id = *(int *)(arg), num;
   free(arg);
 
   while (1)
@@ -149,14 +149,21 @@ int main(int argc, char *argv[])
   sem_init(&emptySlot, 0, M);
 
   // Validação dos parâmetros de entrada
-  if (argc != 3)
+  if (argc != 4)
   {
-    fprintf(stderr, "Use: %s <arquivo_inteiros> <qntd_threads>\n", argv[0]);
+    fprintf(stderr, "Use: %s <arquivo_inteiros> <tam_buffer> <qntd_threads>\n", argv[0]);
     exit(-1);
   }
 
+  buffer = (int *)malloc(sizeof(int) * atoi(argv[2]));
+  if (!buffer)
+  {
+    fprintf(stderr, "ERRO: malloc() do buffer\n");
+    return -3;
+  }
+
   initArr(argv[1]);
-  nThreads = atoi(argv[2]);
+  nThreads = atoi(argv[3]);
 
   tidCon = (pthread_t *)malloc(sizeof(pthread_t) * nThreads);
   if (!tidCon)
@@ -176,7 +183,7 @@ int main(int argc, char *argv[])
   {
     id = (int *)malloc(sizeof(int));
     *id = i + 1;
-    if (pthread_create(&tidCon[i], NULL, consumer, (void *)id))
+    if (pthread_create(&tidCon[i], NULL, consumer, NULL))
     {
       fprintf(stderr, "ERRO: Criacao das threads consumidoras\n");
       exit(1);
