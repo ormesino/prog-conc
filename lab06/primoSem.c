@@ -4,13 +4,11 @@
 #include <pthread.h>
 #include <math.h>
 
-#define M 5
-
+// Variáveis globais
 sem_t fullSlot, emptySlot;
 sem_t innerMutex, outerMutex;
-int arrSize, globalN = 0;
-int *arr;
-int *buffer;
+int arrSize, globalN = 0, bufferSize;
+int *arr, *buffer;
 
 typedef struct
 {
@@ -18,11 +16,13 @@ typedef struct
   int score;
 } worker;
 
+// Inicializa o vetor de inteiros com os valores do arquivo
 void initArr(char *str)
 {
   size_t ret;
   FILE *fptr;
 
+  // Abertura do arquivo
   fptr = fopen(str, "rb");
   if (!fptr)
   {
@@ -30,6 +30,7 @@ void initArr(char *str)
     exit(-2);
   }
 
+  // Leitura da dimensão do vetor
   ret = fread(&arrSize, sizeof(int), 1, fptr);
   if (!ret)
   {
@@ -56,6 +57,7 @@ void initArr(char *str)
   fclose(fptr);
 }
 
+// Função auxiliar para verificar se um número é primo
 int findPrime(int num)
 {
   if (num <= 1)
@@ -77,7 +79,7 @@ void Put(int elem)
   sem_wait(&emptySlot);  // Aguarda slot vazio para inserir
   sem_wait(&innerMutex); // Exclusão mútua entre produtores
   buffer[in] = elem;
-  in = (in + 1) % M;
+  in = (in + 1) % bufferSize;
   sem_post(&innerMutex);
   sem_post(&fullSlot); // Sinaliza um slot cheio para ser consumido
 }
@@ -91,12 +93,13 @@ int Remove()
   sem_wait(&innerMutex); // Exclusão mútua entre consumidores
   item = buffer[out];
   buffer[out] = 0;
-  out = (out + 1) % M;
+  out = (out + 1) % bufferSize;
   sem_post(&innerMutex);
   sem_post(&emptySlot); // Sinaliza um slot vazio para ser consumido
   return item;
 }
 
+// Função produtora
 void *producer(void *arg)
 {
   free(arg);
@@ -106,6 +109,7 @@ void *producer(void *arg)
   pthread_exit(NULL);
 }
 
+// Função consumidora
 void *consumer(void *arg)
 {
   int num;
@@ -129,7 +133,7 @@ void *consumer(void *arg)
     num = Remove();
     globalN++;
     sem_post(&outerMutex);
-    
+
     *partialResult += findPrime(num);
   }
 
@@ -142,12 +146,6 @@ int main(int argc, char *argv[])
   pthread_t *tidCon, tidProd;
   worker *winner;
 
-  // Inicialização dos semáforos
-  sem_init(&innerMutex, 0, 1);
-  sem_init(&outerMutex, 0, 1);
-  sem_init(&fullSlot, 0, 0);
-  sem_init(&emptySlot, 0, M);
-
   // Validação dos parâmetros de entrada
   if (argc != 4)
   {
@@ -155,16 +153,26 @@ int main(int argc, char *argv[])
     exit(-1);
   }
 
-  buffer = (int *)malloc(sizeof(int) * atoi(argv[2]));
+  // Inicialização do buffer
+  bufferSize = atoi(argv[2]);
+  buffer = (int *)malloc(sizeof(int) * bufferSize);
   if (!buffer)
   {
     fprintf(stderr, "ERRO: malloc() do buffer\n");
     return -3;
   }
 
+  // Inicialização dos semáforos
+  sem_init(&innerMutex, 0, 1);
+  sem_init(&outerMutex, 0, 1);
+  sem_init(&fullSlot, 0, 0);
+  sem_init(&emptySlot, 0, bufferSize);
+
+  // Inicialização do vetor de inteiros
   initArr(argv[1]);
   nThreads = atoi(argv[3]);
 
+  // Alocação do vetor de threads consumidoras
   tidCon = (pthread_t *)malloc(sizeof(pthread_t) * nThreads);
   if (!tidCon)
   {
@@ -179,6 +187,7 @@ int main(int argc, char *argv[])
     exit(1);
   }
 
+  // Criação das threads consumidoras
   for (int i = 0; i < nThreads; i++)
   {
     id = (int *)malloc(sizeof(int));
@@ -190,6 +199,7 @@ int main(int argc, char *argv[])
     }
   }
 
+  // Alocação do vencedor
   winner = (worker *)malloc(sizeof(worker));
   if (!winner)
   {
@@ -224,9 +234,11 @@ int main(int argc, char *argv[])
     free(partialResult);
   }
 
+  // Exibição dos resultados
   printf("Soma dos numeros primos encontrados: %d\n", result);
   printf("Thread %d eh a vencedora tendo achado %d primos\n", winner->id, winner->score);
 
+  // Liberação de memória
   free(tidCon);
   free(id);
   free(arr);
